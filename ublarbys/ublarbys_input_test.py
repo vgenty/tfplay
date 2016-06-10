@@ -25,11 +25,12 @@ import tensorflow as tf
 
 from tensorflow.models.image.ublarbys import ublarbys_input
 
+IM_WIDTH=IM_HEIGHT=224
 
-class CIFAR10InputTest(tf.test.TestCase):
+class UBLARBYSInputTest(tf.test.TestCase):
 
   def _record(self, label, red, green, blue):
-    image_size = 32 * 32
+    image_size = IM_WIDTH * IM_HEIGHT
     record = bytes(bytearray([label] + [red] * image_size +
                              [green] * image_size + [blue] * image_size))
     expected = [[[red, green, blue]] * 32] * 32
@@ -42,14 +43,14 @@ class CIFAR10InputTest(tf.test.TestCase):
                self._record(labels[2], 254, 255, 0)]
     contents = b"".join([record for record, _ in records])
     expected = [expected for _, expected in records]
-    filename = os.path.join(self.get_temp_dir(), "cifar")
+    filename = os.path.join(self.get_temp_dir(), "ublarbys")
     open(filename, "wb").write(contents)
 
     with self.test_session() as sess:
       q = tf.FIFOQueue(99, [tf.string], shapes=())
       q.enqueue([filename]).run()
       q.close().run()
-      result = cifar10_input.read_cifar10(q)
+      result = ublarbys_input.read_ublarbys(q)
 
       for i in range(3):
         key, label, uint8image = sess.run([

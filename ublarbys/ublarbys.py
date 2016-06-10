@@ -282,7 +282,7 @@ def inference(images):
     reshape = tf.reshape(pool5, [FLAGS.batch_size, -1])    
     dim = reshape.get_shape()[1].value
     print("Dim is %s"%dim)
-    weights = tf.Variable(tf.constant(0.0, shape=[dim, 4096], dtype=tf.float32),
+    weights = tf.Variable(tf.constant(0.001, shape=[dim, 4096], dtype=tf.float32),
                           trainable=True,name='biases')
     biases = tf.Variable(tf.constant(0.0, shape=[4096], dtype=tf.float32),
                          trainable=True, name='biases')
@@ -291,7 +291,7 @@ def inference(images):
 
   # local4
   with tf.variable_scope('fc7') as scope:
-    weights = tf.Variable(tf.constant(0.0, shape=[4096, 4096], dtype=tf.float32),
+    weights = tf.Variable(tf.constant(0.001, shape=[4096, 4096], dtype=tf.float32),
                           trainable=True,name='biases')
 
     biases = tf.Variable(tf.constant(0.0, shape=[4096], dtype=tf.float32),
@@ -377,6 +377,7 @@ def train(total_loss, global_step):
   Returns:
     train_op: op for training.
   """
+
   # Variables that affect learning rate.
   num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
   decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
@@ -418,22 +419,3 @@ def train(total_loss, global_step):
     train_op = tf.no_op(name='train')
 
   return train_op
-
-
-# def maybe_download_and_extract():
-#   """Download and extract the tarball from Alex's website."""
-#   dest_directory = FLAGS.data_dir
-#   if not os.path.exists(dest_directory):
-#     os.makedirs(dest_directory)
-#   filename = DATA_URL.split('/')[-1]
-#   filepath = os.path.join(dest_directory, filename)
-#   if not os.path.exists(filepath):
-#     def _progress(count, block_size, total_size):
-#       sys.stdout.write('\r>> Downloading %s %.1f%%' % (filename,
-#           float(count * block_size) / float(total_size) * 100.0))
-#       sys.stdout.flush()
-#     filepath, _ = urllib.request.urlretrieve(DATA_URL, filepath, _progress)
-#     print()
-#     statinfo = os.stat(filepath)
-#     print('Successfully downloaded', filename, statinfo.st_size, 'bytes.')
-#     tarfile.open(filepath, 'r:gz').extractall(dest_directory)

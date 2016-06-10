@@ -28,7 +28,7 @@ def get_all_records(FILE):
    filename_queue = tf.train.string_input_producer([ FILE ])
    image, label, height, width, depth = read_and_decode(filename_queue)
    image = tf.reshape(image, tf.pack([height, width, 3]))
-   image.set_shape([720,720,3])
+   image.set_shape([224,224,3])
    init_op = tf.initialize_all_variables()
    sess.run(init_op)
    coord = tf.train.Coordinator()
