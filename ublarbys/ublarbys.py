@@ -234,8 +234,7 @@ def inference(images):
   _activation_summary(pool5)
   
   
-  ########FIX ME#######
-  # local3
+  ####INCLUDE DROPOUT!####
   with tf.variable_scope('fc6') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
     print("\tis Dim is fucked?")
@@ -256,7 +255,7 @@ def inference(images):
     fc6 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
     _activation_summary(fc6)
 
-  # local4
+  ####INCLUDE DROPOUT!####
   with tf.variable_scope('fc7') as scope:
     weights = tf.Variable(tf.truncated_normal(shape=[4096, 4096], 
                                               dtype=tf.float32,
