@@ -1,19 +1,9 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
+# I'm going to copy CIFAR and see what's up
 
-"""Builds the CIFAR-10 network.
+# Builds the AlexNet network for UB demo 1 data.
+# Current status is that it's fucked
+
+"""
 
 Summary of available functions:
 
@@ -30,21 +20,25 @@ Summary of available functions:
  # Create a graph to run one step of training with respect to the loss.
  train_op = train(loss, global_step)
 """
+
 # pylint: disable=missing-docstring
 from __future__ import absolute_import
 from __future__ import division
-from __future__ import print_function
+#this annoys me but we keep it. print\s"" must be replaced with print(""
+from __future__ import print_function 
 
-import gzip
+
 import os
 import re
 import sys
-import tarfile
 
-from six.moves import urllib
+# no need...
+# import gzip
+# import tarfile
+# from six.moves import urllib
+
 import tensorflow as tf
 
-#from tensorflow.models.image.ublarbys import ublarbys_input
 import ublarbys_input as ublarbys_input
 
 FLAGS = tf.app.flags.FLAGS
@@ -66,15 +60,14 @@ NUM_EXAMPLES_PER_EPOCH_FOR_EVAL = ublarbys_input.NUM_EXAMPLES_PER_EPOCH_FOR_EVAL
 MOVING_AVERAGE_DECAY = 0.9999     # The decay to use for the moving average.
 NUM_EPOCHS_PER_DECAY = 350.0      # Epochs after which learning rate decays.
 LEARNING_RATE_DECAY_FACTOR = 0.1  # Learning rate decay factor.
-INITIAL_LEARNING_RATE = 0.1       # Initial learning rate.
+
+# was 0.1 for CIFAR
+INITIAL_LEARNING_RATE = 0.01      # Initial learning rate.
 
 # If a model is trained with multiple GPUs, prefix all Op names with tower_name
 # to differentiate the operations. Note that this prefix is removed from the
 # names of the summaries when visualizing a model.
 TOWER_NAME = 'tower'
-
-#DATA_URL = 'http://www.cs.toronto.edu/~kriz/ublarbys-binary.tar.gz'
-
 
 def _activation_summary(x):
   """Helper to create summaries for activations.
@@ -89,53 +82,14 @@ def _activation_summary(x):
   """
   # Remove 'tower_[0-9]/' from the name in case this is a multi-GPU training
   # session. This helps the clarity of presentation on tensorboard.
+
   tensor_name = re.sub('%s_[0-9]*/' % TOWER_NAME, '', x.op.name)
   tf.histogram_summary(tensor_name + '/activations', x)
   tf.scalar_summary(tensor_name + '/sparsity', tf.nn.zero_fraction(x))
 
 
-def _variable_on_cpu(name, shape, initializer):
-  """Helper to create a Variable stored on CPU memory.
-
-  Args:
-    name: name of the variable
-    shape: list of ints
-    initializer: initializer for Variable
-
-  Returns:
-    Variable Tensor
-  """
-  with tf.device('/cpu:0'):
-    var = tf.get_variable(name, shape, initializer=initializer)
-  return var
-
-
-def _variable_with_weight_decay(name, shape, stddev, wd):
-  """Helper to create an initialized Variable with weight decay.
-
-  Note that the Variable is initialized with a truncated normal distribution.
-  A weight decay is added only if one is specified.
-
-  Args:
-    name: name of the variable
-    shape: list of ints
-    stddev: standard deviation of a truncated Gaussian
-    wd: add L2Loss weight decay multiplied by this float. If None, weight
-        decay is not added for this Variable.
-
-  Returns:
-    Variable Tensor
-  """
-  var = _variable_on_cpu(name, shape,
-                         tf.truncated_normal_initializer(stddev=stddev))
-  if wd is not None:
-    weight_decay = tf.mul(tf.nn.l2_loss(var), wd, name='weight_loss')
-    tf.add_to_collection('losses', weight_decay)
-  return var
-
-
 def distorted_inputs():
-  """Construct distorted input for CIFAR training using the Reader ops.
+  """Construct distorted input for training using the Reader options.
 
   Returns:
     images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
@@ -144,16 +98,18 @@ def distorted_inputs():
   Raises:
     ValueError: If no data_dir
   """
+
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
-  #data_dir = os.path.join(FLAGS.data_dir, 'ublarbys-batches-bin')
+  
   data_dir = None
   return ublarbys_input.distorted_inputs(data_dir=data_dir,
                                          batch_size=FLAGS.batch_size)
 
 
 def inputs(eval_data):
-  """Construct input for CIFAR evaluation using the Reader ops.
+
+  """Construct input for UBLARBYS evaluation using the Reader ops.
 
   Args:
     eval_data: bool, indicating if one should use the train or eval data set.
@@ -165,9 +121,11 @@ def inputs(eval_data):
   Raises:
     ValueError: If no data_dir
   """
+
   if not FLAGS.data_dir:
     raise ValueError('Please supply a data_dir')
   #data_dir = os.path.join(FLAGS.data_dir, 'ublarbys-batches-bin')
+
   data_dir = None
   return ublarbys_input.inputs(eval_data=eval_data, data_dir=data_dir,
                               batch_size=FLAGS.batch_size)
@@ -183,11 +141,13 @@ def inference(images):
     Logits.
   """
   parameters = []
+
   # We instantiate all variables using tf.get_variable() instead of
   # tf.Variable() in order to share variables across multiple GPU training runs.
   # If we only ran this model on a single GPU, we could simplify this function
   # by replacing all instances of tf.get_variable() with tf.Variable().
   #
+
   with tf.name_scope('conv1') as scope:
     kernel = tf.Variable(tf.truncated_normal([11, 11, 3, 64], dtype=tf.float32,
                                              stddev=1e-1), name='weights')
@@ -278,23 +238,34 @@ def inference(images):
   # local3
   with tf.variable_scope('fc6') as scope:
     # Move everything into depth so we can perform a single matrix multiply.
-    print("Dim is fucked")
+    print("\tis Dim is fucked?")
     reshape = tf.reshape(pool5, [FLAGS.batch_size, -1])    
     dim = reshape.get_shape()[1].value
-    print("Dim is %s"%dim)
-    weights = tf.Variable(tf.constant(0.001, shape=[dim, 4096], dtype=tf.float32),
-                          trainable=True,name='biases')
-    biases = tf.Variable(tf.constant(0.0, shape=[4096], dtype=tf.float32),
+    print("\tDim is %s"%dim)
+
+    weights = tf.Variable(tf.truncated_normal(shape=[dim, 4096], 
+                                              dtype=tf.float32,
+                                              stddev=1e-4),
+                          trainable=True,name='weights')
+
+    biases = tf.Variable(tf.constant(0.0, 
+                                     shape=[4096], 
+                                     dtype=tf.float32),
                          trainable=True, name='biases')
+
     fc6 = tf.nn.relu(tf.matmul(reshape, weights) + biases, name=scope.name)
     _activation_summary(fc6)
 
   # local4
   with tf.variable_scope('fc7') as scope:
-    weights = tf.Variable(tf.constant(0.001, shape=[4096, 4096], dtype=tf.float32),
-                          trainable=True,name='biases')
+    weights = tf.Variable(tf.truncated_normal(shape=[4096, 4096], 
+                                              dtype=tf.float32,
+                                              stddev=1e-4),
+                          trainable=True,name='weights')
 
-    biases = tf.Variable(tf.constant(0.0, shape=[4096], dtype=tf.float32),
+    biases = tf.Variable(tf.constant(0.0,
+                                     shape=[4096],
+                                     dtype=tf.float32),
                          trainable=True, name='biases')
 
     fc7 = tf.nn.relu(tf.matmul(fc6, weights) + biases, name=scope.name)
@@ -303,14 +274,19 @@ def inference(images):
   
   # softmax, i.e. softmax(WX + b)
   with tf.variable_scope('softmax_linear') as scope:
-    weights = _variable_with_weight_decay('weights', [4096, NUM_CLASSES],
-                                          stddev=1/4096.0, wd=0.0)
-    biases = tf.Variable(tf.constant(0.0, shape=[NUM_CLASSES], dtype=tf.float32),
+    weights = tf.Variable(tf.truncated_normal(shape=[4096, NUM_CLASSES], 
+                                              dtype=tf.float32,
+                                              stddev=1e-4),
+                          trainable=True,name='weights')
+
+    biases = tf.Variable(tf.constant(0.0, 
+                                     shape=[NUM_CLASSES],
+                                     dtype=tf.float32),
                          trainable=True, name='biases')
     softmax_linear = tf.add(tf.matmul(fc7, weights), biases, name=scope.name)
     _activation_summary(softmax_linear)
 
-  return softmax_linear
+    return softmax_linear
 
 
 def loss(logits, labels):
@@ -326,7 +302,7 @@ def loss(logits, labels):
     Loss tensor of type float.
   """
   # Calculate the average cross entropy loss across the batch.
-  labels = tf.cast(labels, tf.int64)
+  labels = tf.cast(labels, tf.int32) #why make them 64 bit int? is 32 bits fine?
   cross_entropy = tf.nn.sparse_softmax_cross_entropy_with_logits(
       logits, labels, name='cross_entropy_per_example')
   cross_entropy_mean = tf.reduce_mean(cross_entropy, name='cross_entropy')
@@ -380,14 +356,16 @@ def train(total_loss, global_step):
 
   # Variables that affect learning rate.
   num_batches_per_epoch = NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN / FLAGS.batch_size
-  decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
+  # decay_steps = int(num_batches_per_epoch * NUM_EPOCHS_PER_DECAY)
 
-  # Decay the learning rate exponentially based on the number of steps.
-  lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
-                                  global_step,
-                                  decay_steps,
-                                  LEARNING_RATE_DECAY_FACTOR,
-                                  staircase=True)
+  # # Decay the learning rate exponentially based on the number of steps.
+  # lr = tf.train.exponential_decay(INITIAL_LEARNING_RATE,
+  #                                 global_step,
+  #                                 decay_steps,
+  #                                 LEARNING_RATE_DECAY_FACTOR,
+  #                                 staircase=True)
+
+  lr = INITIAL_LEARNING_RATE # don't decay it since I don't yet understand the function call
   tf.scalar_summary('learning_rate', lr)
 
   # Generate moving averages of all losses and associated summaries.
@@ -398,14 +376,14 @@ def train(total_loss, global_step):
     opt = tf.train.GradientDescentOptimizer(lr)
     grads = opt.compute_gradients(total_loss)
 
-  # Apply gradients.
+  # Apply gradients -- sort of awkward. I could just compute gradients for fun and not apply then ok great
   apply_gradient_op = opt.apply_gradients(grads, global_step=global_step)
 
-  # Add histograms for trainable variables.
+  # Add histograms for trainable variables -- tensorboard
   for var in tf.trainable_variables():
     tf.histogram_summary(var.op.name, var)
 
-  # Add histograms for gradients.
+  # Add histograms for gradients -- also tensorboard... looks like you just specify a dynamic url location
   for grad, var in grads:
     if grad is not None:
       tf.histogram_summary(var.op.name + '/gradients', grad)

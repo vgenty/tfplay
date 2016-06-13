@@ -1,19 +1,4 @@
-# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
-#
-# Licensed under the Apache License, Version 2.0 (the "License");
-# you may not use this file except in compliance with the License.
-# You may obtain a copy of the License at
-#
-#     http://www.apache.org/licenses/LICENSE-2.0
-#
-# Unless required by applicable law or agreed to in writing, software
-# distributed under the License is distributed on an "AS IS" BASIS,
-# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-# See the License for the specific language governing permissions and
-# limitations under the License.
-# ==============================================================================
-
-"""Routine for decoding the CIFAR-10 binary file format."""
+# Routine for decoding the UBLARBYS tensoflowed data
 
 from __future__ import absolute_import
 from __future__ import division
@@ -56,46 +41,11 @@ def read_ublarbys(filename_queue):
       uint8image: a [height, width, depth] uint8 Tensor with the image data
   """
 
+  # cheap way to make a hash
   class UBLARBYSRecord(object):
     pass
   result = UBLARBYSRecord()
 
-  # # Dimensions of the images in the CIFAR-10 dataset.
-  # # See http://www.cs.toronto.edu/~kriz/cifar.html for a description of the
-  # # input format.
-  # label_bytes = 1  # 2 for CIFAR-100 # ub has max 7 classes, more bytes necessary for more classes
-  # result.height = 224
-  # result.width = 224
-
-  # result.depth = 3 #it's RGB yeah
-
-  # image_bytes = result.height * result.width * result.depth
-  
-  # # Every record consists of a label followed by the image, with a
-
-  # # fixed number of bytes for each.
-  # record_bytes = label_bytes + image_bytes
-
-  # # Read a record, getting filenames from the filename_queue.  No
-  # # header or footer in the CIFAR-10 format, so we leave header_bytes
-  # # and footer_bytes at their default of 0.
-  # reader = tf.FixedLengthRecordReader(record_bytes=record_bytes)
-  # result.key, value = reader.read(filename_queue)
-
-  # # Convert from a string to a vector of uint8 that is record_bytes long.
-  # record_bytes = tf.decode_raw(value, tf.uint8)
-
-  # # The first bytes represent the label, which we convert from uint8->int32.
-  # result.label = tf.cast(
-  #     tf.slice(record_bytes, [0], [label_bytes]), tf.int32)
-
-  # # The remaining bytes after the label represent the image, which we reshape
-  # # from [depth * height * width] to [depth, height, width].
-  # depth_major = tf.reshape(tf.slice(record_bytes, [label_bytes], [image_bytes]),
-  #                          [result.depth, result.height, result.width])
-  # # Convert from [depth, height, width] to [height, width, depth].
-  # result.uint8image = tf.transpose(depth_major, [1, 2, 0])
-  
   reader = tf.TFRecordReader()
   result.key, value= reader.read(filename_queue)
   features = tf.parse_single_example(
@@ -156,24 +106,14 @@ def _generate_image_and_label_batch(image, label, min_queue_examples,
         capacity=min_queue_examples + 3 * batch_size)
 
   # Display the training images in the visualizer.
-  tf.image_summary('images', images)
+  tf.image_summary('images', images) # these are not ``distorted" yet I guess
 
   return images, tf.reshape(label_batch, [batch_size])
 
 
 def distorted_inputs(data_dir, batch_size):
-  """Construct distorted input for CIFAR training using the Reader ops.
-
-  Args:
-    data_dir: Path to the CIFAR-10 data directory.
-    batch_size: Number of images per batch.
-
-  Returns:
-    images: Images. 4D tensor of [batch_size, IMAGE_SIZE, IMAGE_SIZE, 3] size.
-    labels: Labels. 1D tensor of [batch_size] size.
-  """
-  # filenames = [os.path.join(data_dir, 'data_batch_%d.bin' % i)
-  #              for i in xrange(1, 6)]
+  
+  # where is this thing
   filenames = ['/stage/vgenty/train.tfrecords']
 
   for f in filenames:
@@ -185,6 +125,7 @@ def distorted_inputs(data_dir, batch_size):
 
   # Read examples from files in the filename queue.
   read_input = read_ublarbys(filename_queue)
+  #
   reshaped_image = tf.cast(read_input.uint8image, tf.float32)
 
   height = IMAGE_SIZE
@@ -197,7 +138,8 @@ def distorted_inputs(data_dir, batch_size):
   # distorted_image = tf.random_crop(reshaped_image, [height, width, 3])
 
   # Randomly flip the image horizontally.
-  #distorted_image = tf.image.random_flip_left_right(distorted_image)
+  # distorted_image = tf.image.random_flip_left_right(distorted_image)
+  
   distorted_image = tf.image.random_flip_left_right(reshaped_image)
 
   # Because these operations are not commutative, consider randomizing
@@ -208,8 +150,9 @@ def distorted_inputs(data_dir, batch_size):
   #                                           lower=0.2, upper=1.8)
 
   # Subtract off the mean and divide by the variance of the pixels.
+  # no mean subtraction in tensorflow, just whitening, fine
   float_image = tf.image.per_image_whitening(distorted_image)
-
+  
   # Ensure that the random shuffling has good mixing properties.
   min_fraction_of_examples_in_queue = 0.4
   min_queue_examples = int(NUM_EXAMPLES_PER_EPOCH_FOR_TRAIN *
@@ -224,7 +167,7 @@ def distorted_inputs(data_dir, batch_size):
 
 
 def inputs(eval_data, data_dir, batch_size):
-  """Construct input for CIFAR evaluation using the Reader ops.
+  """Construct input for UBLARBYS evaluation using the Reader ops.
 
   Args:
     eval_data: bool, indicating if one should use the train or eval data set.
@@ -264,6 +207,7 @@ def inputs(eval_data, data_dir, batch_size):
   #                                                        width, height)
 
   # Subtract off the mean and divide by the variance of the pixels.
+  # must be exact same as train time
   float_image = tf.image.per_image_whitening(resized_image)
 
   # Ensure that the random shuffling has good mixing properties.
